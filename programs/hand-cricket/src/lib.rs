@@ -6,19 +6,15 @@ declare_id!("AzoMpQEXkm7UME4WhZh1oe6BjMHSiv3DY89wUKsApVpr");
 pub mod hand_cricket {
     use super::*;
 
-    pub fn start_game(ctx: Context<StartGame>) -> Result<()> {
-        let game_account = &mut ctx.accounts.game_account;
-        game_account.player = *ctx.accounts.player.key;
-        game_account.score = 0;
-        game_account.is_active = true;
-        Ok(())
-    }
-
     pub fn play_turn(ctx: Context<PlayTurn>, player_choice: u8) -> Result<()> {
         let game_account = &mut ctx.accounts.game_account;
 
         // Ensure the game is active
-        require!(game_account.is_active, HandCricketError::GameNotActive);
+        if !game_account.is_active {
+            game_account.player = *ctx.accounts.player.key;
+            game_account.score = 0;
+            game_account.is_active = true;
+        }
 
         // Validate player choice
         require!(
@@ -68,19 +64,12 @@ fn generate_contract_choice() -> Result<u8> {
 }
 
 #[derive(Accounts)]
-pub struct StartGame<'info> {
-    #[account(init, payer = player, seeds = [player.key().as_ref()], bump, space = 8 + GameAccount::INIT_SPACE)]
+pub struct PlayTurn<'info> {
+    #[account(init_if_needed, payer = player, seeds = [player.key().as_ref()], bump, space = 8 + GameAccount::INIT_SPACE)]
     pub game_account: Account<'info, GameAccount>,
     #[account(mut)]
     pub player: Signer<'info>,
     pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct PlayTurn<'info> {
-    #[account(mut, has_one = player)]
-    pub game_account: Account<'info, GameAccount>,
-    pub player: Signer<'info>,
 }
 
 #[account]
