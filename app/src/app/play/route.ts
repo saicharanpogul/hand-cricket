@@ -118,7 +118,7 @@ export const POST = async (req: Request) => {
         }),
         new TransactionInstruction({
           programId: new PublicKey(PROGRAM_ID),
-          data: Buffer.from(intOptions.toString(), "utf8"),
+          data: Buffer.from([116, 200, 44, 67, 23, 228, 209, 99, intOptions]),
           keys: [
             {
               pubkey: gameAccount,
