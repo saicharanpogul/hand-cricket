@@ -147,7 +147,7 @@ export const POST = async (req: Request) => {
       const payload: ActionPostResponse = await createPostResponse({
         fields: {
           transaction,
-          message: "Post this memo on-chain",
+          message: `Played with option ${intOptions}`,
           type: "transaction",
           links: {
             /**
@@ -157,8 +157,15 @@ export const POST = async (req: Request) => {
              * you could also use query params to track whatever step you are on
              */
             next: {
-              type: "post",
-              href: "/play",
+              type: "inline",
+              action: {
+                type: "action",
+                label: "Play Turn",
+                icon: `https://image.lexica.art/full_webp/9a2fef40-6ec2-4e23-8865-f7c9d7b5ed80`,
+                title: "Play Hand Cricket ☝️ ✌️ 🖐️",
+                description: "Play the Hand Cricket game",
+              },
+              // href: "/play",
             },
           },
         },
