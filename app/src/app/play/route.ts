@@ -25,7 +25,7 @@ const PROGRAM_ID = new PublicKey(
 
 export const GET = async () => {
   const payload: Action = {
-    icon: `https://image.lexica.art/full_webp/9a2fef40-6ec2-4e23-8865-f7c9d7b5ed80`,
+    icon: `https://arweave.net/pJgTqAp-LSGR3Ws8W6riGnPYsKGX9vNiCCF_NBILvq8`,
     label: "Play Hand Cricket ☝️ ✌️ 🖐️",
     title: "Play Hand Cricket ☝️ ✌️ 🖐️",
     description: "Play the Hand Cricket game",
@@ -161,7 +161,7 @@ export const POST = async (req: Request) => {
               action: {
                 type: "action",
                 label: "Play Turn",
-                icon: `https://image.lexica.art/full_webp/9a2fef40-6ec2-4e23-8865-f7c9d7b5ed80`,
+                icon: `https://arweave.net/pJgTqAp-LSGR3Ws8W6riGnPYsKGX9vNiCCF_NBILvq8`,
                 title: "Play Hand Cricket ☝️ ✌️ 🖐️",
                 description: "Play the Hand Cricket game",
                 links: {
