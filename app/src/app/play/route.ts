@@ -1,4 +1,23 @@
-import { ACTIONS_CORS_HEADERS, Action } from "@solana/actions";
+import {
+  Action,
+  ActionError,
+  ActionPostRequest,
+  ActionPostResponse,
+  MEMO_PROGRAM_ID,
+  createActionHeaders,
+  createPostResponse,
+} from "@solana/actions";
+import {
+  clusterApiUrl,
+  ComputeBudgetProgram,
+  Connection,
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+} from "@solana/web3.js";
+
+// create the standard headers for this route (including CORS)
+const headers = createActionHeaders();
 
 export const GET = async () => {
   const payload: Action = {
@@ -57,16 +76,87 @@ export const GET = async () => {
   };
 
   return Response.json(payload, {
-    headers: ACTIONS_CORS_HEADERS,
+    headers,
   });
 };
 
 export const POST = async (req: Request) => {
-  console.log(req.body);
+  try {
+    const body: ActionPostRequest<{ options: string }> & {
+      params: ActionPostRequest<{ options: string }>["data"];
+    } = await req.json();
 
-  return Response.json("", {
-    headers: ACTIONS_CORS_HEADERS,
-  });
+    console.log(body);
+
+    let account: PublicKey;
+    try {
+      account = new PublicKey(body.account);
+    } catch {
+      throw 'Invalid "account" provided';
+    }
+    const options = (body.params?.options || body.data?.options) as
+      | string
+      | undefined;
+    if (options) {
+      const intOptions = parseInt(options);
+      const connection = new Connection(
+        process.env.SOLANA_RPC! || clusterApiUrl("devnet")
+      );
+
+      const transaction = new Transaction().add(
+        // note: `createPostResponse` requires at least 1 non-memo instruction
+        ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: 1000,
+        }),
+        new TransactionInstruction({
+          programId: new PublicKey(MEMO_PROGRAM_ID),
+          data: Buffer.from(intOptions.toString(), "utf8"),
+          keys: [],
+        })
+      );
+      transaction.feePayer = account;
+
+      transaction.recentBlockhash = (
+        await connection.getLatestBlockhash()
+      ).blockhash;
+
+      const payload: ActionPostResponse = await createPostResponse({
+        fields: {
+          transaction,
+          message: "Post this memo on-chain",
+          type: "transaction",
+          // links: {
+          //   /**
+          //    * this `href` will receive a POST request (callback)
+          //    * with the confirmed `signature`
+          //    *
+          //    * you could also use query params to track whatever step you are on
+          //    */
+          //   next: {
+          //     type: "post",
+          //     href: "/api/actions/chaining-basics/next-action",
+          //   },
+          // },
+        },
+        // no additional signers are required for this transaction
+        // signers: [],
+      });
+
+      return Response.json(payload, {
+        headers,
+      });
+    } else {
+      throw 'Invalid "options" provided';
+    }
+  } catch (error) {
+    console.log(error);
+    const actionError: ActionError = { message: "An unknown error occurred" };
+    if (typeof error == "string") actionError.message = error;
+    return Response.json(actionError, {
+      status: 400,
+      headers,
+    });
+  }
 };
 
 // DO NOT FORGET TO INCLUDE THE `OPTIONS` HTTP METHOD
