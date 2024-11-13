@@ -3,7 +3,6 @@ import {
   ActionError,
   ActionPostRequest,
   ActionPostResponse,
-  MEMO_PROGRAM_ID,
   createActionHeaders,
   createPostResponse,
 } from "@solana/actions";
@@ -12,12 +11,17 @@ import {
   ComputeBudgetProgram,
   Connection,
   PublicKey,
+  SystemProgram,
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
 
 // create the standard headers for this route (including CORS)
 const headers = createActionHeaders();
+
+const PROGRAM_ID = new PublicKey(
+  "AzoMpQEXkm7UME4WhZh1oe6BjMHSiv3DY89wUKsApVpr"
+);
 
 export const GET = async () => {
   const payload: Action = {
@@ -86,7 +90,7 @@ export const POST = async (req: Request) => {
       params: ActionPostRequest<{ options: string }>["data"];
     } = await req.json();
 
-    console.log(body);
+    console.log("body:", body);
 
     let account: PublicKey;
     try {
@@ -102,6 +106,10 @@ export const POST = async (req: Request) => {
       const connection = new Connection(
         process.env.SOLANA_RPC! || clusterApiUrl("devnet")
       );
+      const [gameAccount] = PublicKey.findProgramAddressSync(
+        [account.toBuffer()],
+        PROGRAM_ID
+      );
 
       const transaction = new Transaction().add(
         // note: `createPostResponse` requires at least 1 non-memo instruction
@@ -109,9 +117,25 @@ export const POST = async (req: Request) => {
           microLamports: 1000,
         }),
         new TransactionInstruction({
-          programId: new PublicKey(MEMO_PROGRAM_ID),
+          programId: new PublicKey(PROGRAM_ID),
           data: Buffer.from(intOptions.toString(), "utf8"),
-          keys: [],
+          keys: [
+            {
+              pubkey: gameAccount,
+              isSigner: false,
+              isWritable: true,
+            },
+            {
+              pubkey: account,
+              isSigner: true,
+              isWritable: true,
+            },
+            {
+              pubkey: SystemProgram.programId,
+              isSigner: false,
+              isWritable: false,
+            },
+          ],
         })
       );
       transaction.feePayer = account;
@@ -125,18 +149,18 @@ export const POST = async (req: Request) => {
           transaction,
           message: "Post this memo on-chain",
           type: "transaction",
-          // links: {
-          //   /**
-          //    * this `href` will receive a POST request (callback)
-          //    * with the confirmed `signature`
-          //    *
-          //    * you could also use query params to track whatever step you are on
-          //    */
-          //   next: {
-          //     type: "post",
-          //     href: "/api/actions/chaining-basics/next-action",
-          //   },
-          // },
+          links: {
+            /**
+             * this `href` will receive a POST request (callback)
+             * with the confirmed `signature`
+             *
+             * you could also use query params to track whatever step you are on
+             */
+            next: {
+              type: "post",
+              href: "/play",
+            },
+          },
         },
         // no additional signers are required for this transaction
         // signers: [],
@@ -159,6 +183,4 @@ export const POST = async (req: Request) => {
   }
 };
 
-// DO NOT FORGET TO INCLUDE THE `OPTIONS` HTTP METHOD
-// THIS WILL ENSURE CORS WORKS FOR BLINKS
-export const OPTIONS = GET;
+export const OPTIONS = async () => Response.json(null, { headers });
